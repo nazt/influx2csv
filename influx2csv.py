@@ -87,7 +87,7 @@ def alldbs():
 					results.append(dct)
 			else:
 				pass
-		# print(measurement['name'])  # non-mqtt
+	# print(measurement['name'])  # non-mqtt
 
 	# mapping[measurement['name']] = {}
 	# mapping[measurement['name'] + utils.getDustBoyId(topic_val)] = topic_val
@@ -110,7 +110,7 @@ def mm():
 					# print(measurement['name'], topic_val, utils.getDustBoyId(topic_val))
 					topic_val = utils.getTopicValue(topic)
 					mapping[measurement['name'] + utils.getDustBoyId(topic_val)] = topic_val
-	print(json.loads(mapping))
+	print(json.dump(mapping))
 	return mapping
 
 
