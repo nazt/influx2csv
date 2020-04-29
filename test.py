@@ -1,7 +1,7 @@
 import unittest
 import taprunner
 
-import nat as utils
+from nat import utils
 
 
 class UtilsTest(unittest.TestCase):
@@ -32,7 +32,8 @@ class UtilsTest(unittest.TestCase):
 	def testSplitToDict(self):
 		shfile = '/Users/nat/ccdc/scripts/dustboy2_nbiotdb_-_dustboy2_nbiotdb_-_dustboy2-02_-_2020-04-20'
 		self.assertEqual(utils.getDictInfo(shfile),
-						 {'date': '2020-04-20', 'datedir': '2020/04', 'measurement': 'dustboy2_nbiotdb', 'database': 'dustboy2_nbiotdb',
+						 {'date': '2020-04-20', 'datedir': '2020/04', 'measurement': 'dustboy2_nbiotdb',
+						  'database': 'dustboy2_nbiotdb',
 						  'nickname': 'dustboy2-02'})
 
 
