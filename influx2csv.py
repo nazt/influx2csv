@@ -5,7 +5,7 @@ from influxdb import InfluxDBClient
 from datetime import date
 import sys
 import click
-import nat as utils
+import .nat as utils
 
 assert sys.version[:1] == "3"
 
