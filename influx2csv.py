@@ -110,7 +110,7 @@ def mm():
 					# print(measurement['name'], topic_val, utils.getDustBoyId(topic_val))
 					topic_val = utils.getTopicValue(topic)
 					mapping[measurement['name'] + utils.getDustBoyId(topic_val)] = topic_val
-	print(json.dump(mapping))
+	print(json.dumps(mapping))
 	return mapping
 
 
