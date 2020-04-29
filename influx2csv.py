@@ -26,7 +26,6 @@ def cli(config):
 	if not config:
 		pass
 	else:
-		print(config)
 		with open(config, 'r') as f:
 			ret = json.load(f)
 
@@ -225,4 +224,3 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 def config():
 	ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
 	str = json.dumps(ret)
-	print(str)
