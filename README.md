@@ -5,4 +5,4 @@
 
 #
 
-    influx2csv config > $HOME/mytarget
+    influx2csv config > $HOME/mytarget/config.json
