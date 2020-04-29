@@ -97,7 +97,6 @@ def alldbs():
 def mm():
 	databases = [db['name'] for db in client.get_list_database()]
 	databases.remove("_internal")
-	print(databases)
 	mapping = {}
 	for db in databases:
 		client.switch_database(db)
