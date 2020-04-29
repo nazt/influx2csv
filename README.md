@@ -15,3 +15,5 @@
     
     for i in $(find scripts -name \*.sh); do echo "$i"; bash "$i"; done
     find csv2 -size 0 -delete
+
+    influx2csv dumpall --date-start=2020-04-01 --out-dir=$HOME/mytarget
