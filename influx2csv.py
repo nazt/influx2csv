@@ -5,12 +5,12 @@ from influxdb import InfluxDBClient
 from datetime import date
 
 import sys
+
 assert sys.version[:1] == "3"
 
 import click
 
 from nat import utils
-
 
 INFLUX_HOST = ''
 INFLUX_USER = ''
@@ -71,7 +71,6 @@ def alldbs():
 	excludes = ['kadyaidb', 'laris1db', 'aqithaidb', 'aqithaicom_db', 'dustboy']
 	databases = [db['name'] for db in client.get_list_database() if db['name'] not in excludes]
 	databases.remove("_internal")
-	print(databases)
 	results = []
 	for db in databases:
 		client.switch_database(db)
