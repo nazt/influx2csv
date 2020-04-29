@@ -147,18 +147,23 @@ def show_measurements():
 @cli.command()
 @click.option('--date-start', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
 @click.option('--date-end', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
-@click.option('--out-dir', type=str)
+@click.option('--out-dir', type=str, required=True)
 def dumpall(date_start, date_end, out_dir):
-	print(date_start, date_end)
+	print(date_start.date(), utils.tomorrow(str(date_end.date())))
 	mapping = alldbs()
+	skipped = 0
 	for d in mapping:
-		dd(date_start, date_end, d['db'], d['measurement'], d['nickname'], d['topic'], out_dir)
+		skipped = skipped + dd(date_start, date_end, d['db'], d['measurement'], d['nickname'], d['topic'], out_dir)
+
+	print("SKIPPED={}".format(skipped))
 
 
 def dd(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
-	x = pd.date_range(start=date_start, end=date_end, freq='D')
+	tomorrow = utils.tomorrow(str(date_end.date()))
+	x = pd.date_range(start=date_start, end=tomorrow, freq='D')
 	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
 		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
+	skipped = 0
 	for i in x:
 		# timetuple = pd.to_datetime(i).timetuple()
 		# print(x)
@@ -184,12 +189,16 @@ def dd(date_start, date_end, database_name, measurement_name, nickname, topic, o
 
 		cond = "{}/{}".format(dirpath, outfile)
 		if os.path.exists(cond):
+			skipped = skipped + 1
 			print("SKIPPED!", outfile)
 		else:
 			with open(shfile, 'w') as out:
 				out.write(c)
 
+	return skipped
 
+
+# print("{}/{} has been SKIPPED.".format(skipped, total))
 # print(c)
 
 @cli.command()
@@ -225,3 +234,4 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 def config():
 	ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
 	str = json.dumps(ret)
+	print(str)
