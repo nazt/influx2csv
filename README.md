@@ -6,3 +6,5 @@
 #
 
     influx2csv config > $HOME/mytarget/config.json
+    influx2csv --config=/Users/nat/mytarget/config.json show-measurements
+    
