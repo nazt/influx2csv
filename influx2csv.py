@@ -3,12 +3,14 @@ import pandas as pd
 import json
 from influxdb import InfluxDBClient
 from datetime import date
+
 import sys
+assert sys.version[:1] == "3"
+
 import click
 
 from nat import utils
 
-assert sys.version[:1] == "3"
 
 INFLUX_HOST = ''
 INFLUX_USER = ''
