@@ -119,7 +119,6 @@ def mm():
 @click.option('--dry-run', count=True)
 def clear_scripts(out_dir, dry_run):
 	scripts = sorted(glob.glob('{0}/scripts/*.sh'.format(out_dir)))
-
 	delete = 0
 	for script in scripts:
 		ret = utils.getDictInfo(script)
@@ -133,7 +132,7 @@ def clear_scripts(out_dir, dry_run):
 			else:
 				os.remove(script)
 
-	print("{} be DELETED".format(delete))
+	print("{} has been DELETED".format(delete))
 
 
 # print('a')
@@ -161,7 +160,7 @@ def dumpall(date_start, date_end, out_dir):
 def dd(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
 	tomorrow = utils.tomorrow(str(date_end.date()))
 	x = pd.date_range(start=date_start, end=tomorrow, freq='D')
-	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
+	cmd = 'time influx -host {} -precision \'rfc3339\' -username {} -password {} -database {}'.format(
 		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
 	skipped = 0
 	for i in x:
