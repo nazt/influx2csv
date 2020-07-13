@@ -6,9 +6,7 @@ setup(
 	py_modules=["influx2csv"],
 	include_package_data=True,
 	install_requires=["click", "tqdm", "pandas", "influxdb"],
-	entry_points="""
-        [console_scripts]
-        influx2csv=influx2csv:cli
-    """,
-	include_package_data=True,
+	entry_points={
+		'console_scripts': ['influx2csv=influx2csv:cli'],
+	},	
 )
