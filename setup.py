@@ -8,7 +8,7 @@ setup(
 	author='Nat Weerawan',
 	author_email='nat.wrw@gmail.com',
 	license='MIT',
-	install_requires=["click", "tqdm", "pandas", "influxdb"],
+	install_requires=["click==7", "tqdm", "pandas", "influxdb"],
 	entry_points={
 		'console_scripts': ['influx2csv=influx2csv.command_line:main'],
 	},	
