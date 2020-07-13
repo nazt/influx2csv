@@ -10,4 +10,5 @@ setup(
         [console_scripts]
         influx2csv=influx2csv:cli
     """,
+	include_package_data=True,
 )
