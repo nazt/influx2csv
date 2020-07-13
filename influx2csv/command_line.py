@@ -1,8 +1,10 @@
-import glob, os, sys
+import glob, os, json
 import pandas as pd
-import json
+
 from influxdb import InfluxDBClient
 from datetime import date
+
+from . import utils
 
 import sys
 
@@ -10,7 +12,6 @@ assert sys.version[:1] == "3"
 
 import click
 
-from nat import utils
 
 INFLUX_HOST = ''
 INFLUX_USER = ''
@@ -234,3 +235,7 @@ def config():
 	ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
 	str = json.dumps(ret)
 	print(str)
+
+
+def main():
+	cli()

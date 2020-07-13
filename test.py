@@ -1,7 +1,7 @@
 import unittest
 import taprunner
 
-from nat import utils
+from influx2csv import utils
 
 
 class UtilsTest(unittest.TestCase):
