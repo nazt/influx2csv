@@ -158,10 +158,11 @@ def dumpall(date_start, date_end, out_dir):
 	print("SKIPPED={}".format(skipped))
 
 
+
 def dd(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
 	tomorrow = utils.tomorrow(str(date_end.date()))
 	x = pd.date_range(start=date_start, end=tomorrow, freq='D')
-	cmd = 'time influx -host {} -precision \'rfc3339\' -username {} -password {} -database {}'.format(
+	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
 		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
 	skipped = 0
 	for i in x:
@@ -217,7 +218,7 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 	x = pd.date_range(start=date_start, end=date_end, freq='D')
 
 	# print(date_start.timetuple().tm_yday)
-	cmd = 'time influx -host {} -precision \'rfc3339\' -username {} -password {} -database {}'.format(
+	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
 		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
 	# print("alias infx='{}'".format(cmd))
 	for i in x:
