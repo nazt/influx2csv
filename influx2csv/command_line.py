@@ -226,7 +226,7 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 		today = str(i.date())
 		tomorrow = utils.tomorrow(today)
 		outfile = "{}_{}.csv".format(nickname, today)
-		c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz('Asia/Bangkok')" -format csv > {}'.format(
+		c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}'.format(
 			measurement_name, today, tomorrow, mapping[measurement_name + nickname], outfile)
 		print(c)
 
