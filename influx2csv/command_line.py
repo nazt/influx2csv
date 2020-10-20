@@ -218,8 +218,8 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 	x = pd.date_range(start=date_start, end=date_end, freq='D')
 
 	# print(date_start.timetuple().tm_yday)
-	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
-		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
+	cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
+		INFLUX_HOST, INFLUX_USER, INFLUX_PORT INFLUX_PASSWORD, database_name)
 	# print("alias infx='{}'".format(cmd))
 	for i in x:
 		# timetuple = pd.to_datetime(i).timetuple()
