@@ -29,6 +29,7 @@ def cli(config):
 	else:
 		with open(config, 'r') as f:
 			ret = json.load(f)
+			print(ret)
 
 		global INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD
 		global client
@@ -163,7 +164,7 @@ def dd(date_start, date_end, database_name, measurement_name, nickname, topic, o
 	tomorrow = utils.tomorrow(str(date_end.date()))
 	x = pd.date_range(start=date_start, end=tomorrow, freq='D')
 	cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
-		INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD, database_name)
+		INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, database_name)
 	skipped = 0
 	for i in x:
 		# timetuple = pd.to_datetime(i).timetuple()
@@ -219,7 +220,7 @@ def dump(date_start, date_end, measurement_name, database_name, nickname):
 
 	# print(date_start.timetuple().tm_yday)
 	cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
-		INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD, database_name)
+		INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, database_name)
 	# print("alias infx='{}'".format(cmd))
 	for i in x:
 		# timetuple = pd.to_datetime(i).timetuple()
