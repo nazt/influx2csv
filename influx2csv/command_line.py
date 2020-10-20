@@ -162,8 +162,8 @@ def dumpall(date_start, date_end, out_dir):
 def dd(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
 	tomorrow = utils.tomorrow(str(date_end.date()))
 	x = pd.date_range(start=date_start, end=tomorrow, freq='D')
-	cmd = 'time influx -host {} -precision \'u\' -username {} -password {} -database {}'.format(
-		INFLUX_HOST, INFLUX_USER, INFLUX_PASSWORD, database_name)
+	cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
+		INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD, database_name)
 	skipped = 0
 	for i in x:
 		# timetuple = pd.to_datetime(i).timetuple()
