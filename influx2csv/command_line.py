@@ -100,7 +100,7 @@ def alldbs():
                 tag_keys = [i['tagKey'] for i in rsl[0]]
                 if 'nickname' in tag_keys:
                     dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
-                           'nickname': measurement['nickname']}
+                           'nickname': measurement['name']}
                 else:
                     print("no nickname")
                 print(tag_keys)
