@@ -93,19 +93,30 @@ def alldbs():
                            'nickname': utils.getDustBoyId(topic_val)}
                     results.append(dct)
             else:
-                rs = client.query(
-                    f"show tag keys from \"{measurement['name']}\"")
-                rsl = list(rs)
-                rsl += [[]]
-                tag_keys = [i['tagKey'] for i in rsl[0]]
-                if 'nickname' in tag_keys:
-                    dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
-                           'nickname': measurement['name']}
+                rs = client.query('show tag values with key = "nickname"')
+                nicknames = list(rs.get_points(
+                    measurement=measurement['name']))
+                if len(nicknames) > 0:
+                    for nickname in nicknames:
+                        dct = {
+                            'db': db, 'measurement': measurement['name'], 'topic': False, 'nickname': nickname}
+                        results.append(dct)
                 else:
-                    print("no nickname")
-                print(tag_keys)
+                    pass
+                # nicknames = list(rs.get_points(measurement=measurement['name']))
+                # # rs = client.query(
+                # #     f"show tag keys from \"{measurement['name']}\"")
+                # # rsl = list(rs)
+                # rsl += [[]]
+                # tag_keys = [i['tagKey'] for i in rsl[0]]
+                # if 'nickname' in tag_keys:
+                #     dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
+                #            'nickname': measurement['name']}
+                # else:
+                #     print("no nickname")
+                # print(tag_keys)
                 # topics = list(rs.get_points(measurement=measurement['name']))
-                pass
+                # pass
     # print(measurement['name'])  # non-mqtt
 
     # mapping[measurement['name']] = {}
