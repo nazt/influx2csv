@@ -73,6 +73,7 @@ def show_databases():
 def alldbs():
     # excludes = ['kadyaidb', 'laris1db',
     #             'aqithaidb', 'aqithaicom_db', 'dustboy']
+    excludes = []
     databases = [db['name']
                  for db in client.get_list_database() if db['name'] not in excludes]
     databases.remove("_internal")
