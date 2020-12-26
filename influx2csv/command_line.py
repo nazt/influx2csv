@@ -94,7 +94,7 @@ def alldbs():
                     results.append(dct)
             else:
                 rs = client.query('show tag keys')
-                tag_keys = list(rs)
+                tag_keys = [i['tagKey'] for i in list(rs)]
                 if 'nickname' in tag_keys:
                     dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
                            'nickname': measurement['nickname']}
