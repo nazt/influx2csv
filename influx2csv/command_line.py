@@ -93,8 +93,9 @@ def alldbs():
                            'nickname': utils.getDustBoyId(topic_val)}
                     results.append(dct)
             else:
-                rs = client.query('show tag keys')
-                print(list(rs))
+                rs = client.query(
+                    f"show tag keys from \"{measurement['name']}\"")
+                # print(list(r))
                 tag_keys = [i['tagKey'] for i in list(rs)]
                 if 'nickname' in tag_keys:
                     dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
