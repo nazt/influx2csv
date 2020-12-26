@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="influx2csv",
-    version="1.12",
+    version="1.13",
     packages=["influx2csv"],
     include_package_data=True,
     author='Nat Weerawan',
