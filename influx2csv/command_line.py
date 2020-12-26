@@ -71,8 +71,8 @@ def show_databases():
 
 
 def alldbs():
-    excludes = ['kadyaidb', 'laris1db',
-                'aqithaidb', 'aqithaicom_db', 'dustboy']
+    # excludes = ['kadyaidb', 'laris1db',
+    #             'aqithaidb', 'aqithaicom_db', 'dustboy']
     databases = [db['name']
                  for db in client.get_list_database() if db['name'] not in excludes]
     databases.remove("_internal")
@@ -92,6 +92,15 @@ def alldbs():
                            'nickname': utils.getDustBoyId(topic_val)}
                     results.append(dct)
             else:
+                rs = client.query('show tag keys')
+                tag_keys = list(rs)
+                if 'nickname' in tag_keys:
+                    dct = {'db': db, 'measurement': measurement['name'], 'topic': False,
+                           'nickname': measurement['nickname']}
+                else:
+                    print("no nickname")
+                print(tag_keys)
+                # topics = list(rs.get_points(measurement=measurement['name']))
                 pass
     # print(measurement['name'])  # non-mqtt
 
@@ -160,13 +169,13 @@ def dumpall(date_start, date_end, out_dir):
     skipped = 0
     for d in mapping:
         skipped = skipped + \
-            dd(date_start, date_end,
-               d['db'], d['measurement'], d['nickname'], d['topic'], out_dir)
+            start_dump(date_start, date_end,
+                       d['db'], d['measurement'], d['nickname'], d['topic'], out_dir)
 
     print("SKIPPED={}".format(skipped))
 
 
-def dd(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
+def start_dump(date_start, date_end, database_name, measurement_name, nickname, topic, out_dir):
     tomorrow = utils.tomorrow(str(date_end.date()))
     x = pd.date_range(start=date_start, end=tomorrow, freq='D')
     cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
@@ -183,8 +192,12 @@ def dd(date_start, date_end, database_name, measurement_name, nickname, topic, o
         scriptpath = "{}/scripts".format(out_dir)
         shfile = "{}/{}_-_{}_-_{}_-_{}.sh".format(scriptpath, database_name, measurement_name, nickname,
                                                   i.strftime("%Y-%m-%d"))
-        c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}/{}'.format(
-            measurement_name, today, tomorrow, topic, dirpath, outfile)
+        if topic:
+            c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}/{}'.format(
+                measurement_name, today, tomorrow, topic, dirpath, outfile)
+        else:
+            c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("nickname"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}/{}'.format(
+                measurement_name, today, tomorrow, nickname, dirpath, outfile)
         try:
             os.makedirs(dirpath)
         except:
