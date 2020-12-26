@@ -99,7 +99,7 @@ def alldbs():
                 if len(nicknames) > 0:
                     for nickname in nicknames:
                         dct = {
-                            'db': db, 'measurement': measurement['name'], 'topic': False, 'nickname': nickname}
+                            'db': db, 'measurement': measurement['name'], 'topic': False, 'nickname': nickname['value']}
                         results.append(dct)
                 else:
                     pass
