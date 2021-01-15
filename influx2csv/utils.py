@@ -28,6 +28,15 @@ def get_tag_keys(client, db):
     return ([item['tagKey'] for item in tag_keys], tag_keys)
 
 
+def get_tag_values(client, db, tag_key):
+    client.switch_database(db)
+    res = client.query(f'show tag values on "{db}" WITH KEY="{tag_key}"')
+    tag_values = list(res.get_points())
+    return [item['value'] for item in tag_values]
+
+    # SHOW TAG VALUES FROM "dustboy2db" WITH KEY = "host"
+
+
 def get_databases(client):
     res = client.query('show databases')
 

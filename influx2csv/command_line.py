@@ -13,8 +13,10 @@ from datetime import date
 from . import utils
 
 import sys
-
 assert sys.version[:1] == "3"
+
+
+def clear(): return os.system('clear')
 
 
 INFLUX_HOST = ''
@@ -34,6 +36,16 @@ cfg = None
 def cli(shout, config):
     """influx2csv"""
 
+    # clear()
+    print("-----------------------------------")
+    print("""
+     _        __ _            ____
+(_)_ __  / _| |_   ___  _|___ \ ___ _____   __
+| | '_ \| |_| | | | \ \/ / __) / __/ __\ \ / /
+| | | | |  _| | |_| |>  < / __/ (__\__ \\ V /
+|_|_| |_|_| |_|\__,_/_/\_\_____\___|___/ \_/
+    """)
+
     global INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD
     global client, debug, cfg
     debug = shout
@@ -46,12 +58,13 @@ def cli(shout, config):
         config = toml.load(config)
         cfg = config
         influx_conf = config['influx']
-
         # with open(config, 'r') as f:
         #     influx_conf = json.load(f)
         #     if debug:
         #         print(influx_conf)
 
+        print(cfg)
+        # sys.exit()
         INFLUX_USER = influx_conf['username']
         INFLUX_PASSWORD = influx_conf['password']
         INFLUX_PORT = influx_conf['port']
@@ -275,9 +288,11 @@ def dump(start_date, end_date, database_name):
     start_date = start_date.date()
     end_date = end_date.date()
     if debug:
-        print(f'datebaase: {database_name}')
-        print(f'start_date: {start_date}')
-        print(f'end_date: {end_date}')
+        print("------------")
+        print(f'> datebaase: {database_name}')
+        print(f'> start_date: {start_date}')
+        print(f'> end_date: {end_date}')
+        print("------------")
 
         start_time = f'{start_date} 00:00:00'
         end_time = f'{end_date} 23:59:59'
@@ -287,9 +302,16 @@ def dump(start_date, end_date, database_name):
         print("------------")
 
         tag_keys, influx_tag_keys = utils.get_tag_keys(client, database_name)
-        print(influx_tag_keys)
+        # print("------------")
+        # print(influx_tag_keys)
+        # print("------------")
+
         for tag_key in tag_keys:
-            print('>', tag_key)
+            # print('>', tag_key)
+            tag_values = utils.get_tag_values(client, database_name, tag_key)
+            for tag_value in tag_values:
+                print(f"{tag_key} >> {tag_value}")
+            print("------------")
 
         print("------------")
         print("field_keys: ")
@@ -297,9 +319,13 @@ def dump(start_date, end_date, database_name):
 
         field_keys, influx_field_keys, = utils.get_field_keys(
             client, database_name)
-        print(influx_field_keys)
+        # print("------------")
+        # print(influx_field_keys)
+        # print("------------")
+
         for field_key in field_keys:
             print('>', field_key)
+        print("------------")
 
         print("------------")
         print("measurements: ")
@@ -315,12 +341,14 @@ def dump(start_date, end_date, database_name):
         print(measurement_names)
 
         global cfg
-        for func_name, func_body in cfg['query']['funcs'].items():
-            print(func_name, func_body)
-            fn = lua.eval(func_body)
-            print(fn('/Dustboy2/gearname/DUSTBOY-001/status'))
 
-        print(cfg['query']['mapping'])
+        # for func_name, func_body in cfg['query']['funcs'].items():
+        #     print(func_name, func_body)
+        #     fn = lua.eval(func_body)
+        #     print(fn('/Dustboy2/gearname/DUSTBOY-001/status'))
+
+        # print(cfg['query']['mapping'])
+
         # for measurement in measurements:
         #     print(measurement['name'])
         #     measurement = measurement['name']
