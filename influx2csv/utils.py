@@ -1,14 +1,38 @@
 import datetime
 
 
-def getDustBoyId(str):  # return DustBoyId
-    result = str.split("/status")
-    result = result[0].split("/")[-1:]
-    return result[0]
+def get_measurment(client, db):
+    client.switch_database(db)
+    res = client.query('SHOW MEASUREMENTS')
+    measurments = list(res.get_points())
+    # df = pd.DataFrame(measurments)
+    # df['db'] = db
+    return measurments
 
 
-def getTopicValue(dct):  # return DustBoyId
-    return dct['value']
+def get_field_keys(client, db):
+    client.switch_database(db)
+    res = client.query('show field keys')
+    field_keys = list(res.get_points())
+    # df = pd.DataFrame(measurments)
+    # df['db'] = db
+    return ([item['fieldKey'] for item in field_keys], field_keys)
+
+
+def get_tag_keys(client, db):
+    client.switch_database(db)
+    res = client.query('show tag keys')
+    tag_keys = list(res.get_points())
+    # df = pd.DataFrame(measurments)
+    # df['db'] = db
+    return ([item['tagKey'] for item in tag_keys], tag_keys)
+
+
+def get_databases(client):
+    res = client.query('show databases')
+
+    databases = list(res.get_points())
+    return databases
 
 
 def tomorrow(war_start):
@@ -16,25 +40,6 @@ def tomorrow(war_start):
     x = datetime.timedelta(days=1)
     ret = today + x
     ret = ret.strftime("%Y-%m-%d")
-    return ret
-
-
-def getDictInfo(string):
-    a = string.split("scripts/")[1]
-    a = a.split(".sh")[0]
-    a = a.split("_-_")
-    ret = {
-        'database': a[0],
-        'measurement': a[1],
-        'nickname': a[2],
-        'datedir': a[3],
-        'date': a[3]
-    }
-
-    tmp = ret['date'].split("-")
-    datepath = "{}/{}".format(tmp[0], tmp[1])
-
-    ret['datedir'] = datepath
     return ret
 
 

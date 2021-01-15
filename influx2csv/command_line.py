@@ -3,6 +3,9 @@ import glob
 import os
 import json
 import pandas as pd
+from lupa import LuaRuntime
+import toml
+
 
 from influxdb import InfluxDBClient
 from datetime import date
@@ -20,25 +23,51 @@ INFLUX_PASSWORD = ''
 INFLUX_PORT = 8086
 client = ''
 
+debug = False
+lua = LuaRuntime(unpack_returned_tuples=True)
+cfg = None
+
 
 @click.group()
+@click.option('--shout/--no-shout', ' /-S', default=False)
 @click.option('--config', type=click.Path(), help='load config files')
-def cli(config):
+def cli(shout, config):
     """influx2csv"""
+
+    global INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD
+    global client, debug, cfg
+    debug = shout
+
     if not config:
+        if debug:
+            print("not config")
         pass
     else:
-        with open(config, 'r') as f:
-            ret = json.load(f)
-            print(ret)
+        config = toml.load(config)
+        cfg = config
+        influx_conf = config['influx']
 
-        global INFLUX_HOST, INFLUX_USER, INFLUX_PORT, INFLUX_PASSWORD
-        global client
+        # with open(config, 'r') as f:
+        #     influx_conf = json.load(f)
+        #     if debug:
+        #         print(influx_conf)
 
-        INFLUX_USER = ret['username']
-        INFLUX_PASSWORD = ret['password']
-        INFLUX_PORT = ret['port']
-        INFLUX_HOST = ret['host']
+        INFLUX_USER = influx_conf['username']
+        INFLUX_PASSWORD = influx_conf['password']
+        INFLUX_PORT = influx_conf['port']
+        INFLUX_HOST = influx_conf['host']
+
+        # print()
+        lua.execute('''
+                    function split(str, sep)
+                        local result = {}
+                        local regex = ("([^%s]+)"):format(sep)
+                        for each in str:gmatch(regex) do
+                            table.insert(result, each)
+                        end
+                        return result
+                    end 
+                ''')
 
         client = InfluxDBClient(
             host=INFLUX_HOST, username=INFLUX_USER, password=INFLUX_PASSWORD, port=INFLUX_PORT)
@@ -62,7 +91,7 @@ def filename(path):
 # @click.option('--output-dir', required=True, type=str, help='Output directory')
 # @click.option('--csv-file', required=True, type=str, help='CSVInput directory')
 # @click.version_option()
-@cli.command("show-databases")
+@ cli.command("show-databases")
 def show_databases():
     databases = [db['name'] for db in client.get_list_database()]
     databases.remove("_internal")
@@ -145,39 +174,38 @@ def mm():
     return mapping
 
 
-@cli.command()
-@click.option('--out-dir', type=str, required=True)
-@click.option('--dry-run', count=True)
-def clear_scripts(out_dir, dry_run):
-    scripts = sorted(glob.glob('{0}/scripts/*.sh'.format(out_dir)))
-    delete = 0
-    for script in scripts:
-        ret = utils.getDictInfo(script)
-        filename = "{}_{}".format(ret['nickname'], ret['date'])
-        check_file = "{}/csv/{}/{}/{}/{}/{}.csv".format(out_dir, ret['database'], ret['measurement'], ret['nickname'],
-                                                        ret['datedir'], filename)
-        if os.path.exists(check_file):
-            delete = delete + 1
-            if dry_run:
-                print("DRY RUN")
-            else:
-                os.remove(script)
-
-    print("{} has been DELETED".format(delete))
+# @cli.command()
+# @click.option('--out-dir', type=str, required=True)
+# @click.option('--dry-run', count=True)
+# def clear_scripts(out_dir, dry_run):
+#     scripts = sorted(glob.glob('{0}/scripts/*.sh'.format(out_dir)))
+#     delete = 0
+#     for script in scripts:
+#         ret = utils.getDictInfo(script)
+#         filename = "{}_{}".format(ret['nickname'], ret['date'])
+#         check_file = "{}/csv/{}/{}/{}/{}/{}.csv".format(out_dir, ret['database'], ret['measurement'], ret['nickname'],
+#                                                         ret['datedir'], filename)
+#         if os.path.exists(check_file):
+#             delete = delete + 1
+#             if dry_run:
+#                 print("DRY RUN")
+#             else:
+#                 os.remove(script)
+#     print("{} has been DELETED".format(delete))
 
 
 # print('a')
 
 
-@cli.command()
+@ cli.command()
 def show_measurements():
     mapping = mm()
 
 
-@cli.command()
-@click.option('--date-start', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
-@click.option('--date-end', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
-@click.option('--out-dir', type=str, required=True)
+@ cli.command()
+@ click.option('--date-start', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
+@ click.option('--date-end', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
+@ click.option('--out-dir', type=str, required=True)
 def dumpall(date_start, date_end, out_dir):
     print(date_start.date(), utils.tomorrow(str(date_end.date())))
     mapping = alldbs()
@@ -238,32 +266,90 @@ def start_dump(date_start, date_end, database_name, measurement_name, nickname, 
 # print(c)
 
 @cli.command()
-@click.option('--date-start', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
-@click.option('--date-end', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()))
+@click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
+@click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
 # @click.option('--measurement-name', type=str, required=True)
 # @click.option('--nickname', type=str, required=True)
-# @click.option('--database-name', type=str, required=True)
-def dump(date_start, date_end, measurement_name, database_name, nickname):
-    date_start = date_start.date()
-    date_end = date_end.date()
+@click.option('--database-name', type=str, required=True, )
+def dump(start_date, end_date, database_name):
+    start_date = start_date.date()
+    end_date = end_date.date()
+    if debug:
+        print(f'datebaase: {database_name}')
+        print(f'start_date: {start_date}')
+        print(f'end_date: {end_date}')
 
-    mapping = mm()
+        start_time = f'{start_date} 00:00:00'
+        end_time = f'{end_date} 23:59:59'
+
+        print("------------")
+        print("tag keys: ")
+        print("------------")
+
+        tag_keys, influx_tag_keys = utils.get_tag_keys(client, database_name)
+        print(influx_tag_keys)
+        for tag_key in tag_keys:
+            print('>', tag_key)
+
+        print("------------")
+        print("field_keys: ")
+        print("------------")
+
+        field_keys, influx_field_keys, = utils.get_field_keys(
+            client, database_name)
+        print(influx_field_keys)
+        for field_key in field_keys:
+            print('>', field_key)
+
+        print("------------")
+        print("measurements: ")
+        print("------------")
+
+        measurements = utils.get_measurment(client, database_name)
+        for measurement in utils.get_measurment(client, database_name):
+            print('>', measurement)
+
+        measurement_names = [measurement['name']
+                             for measurement in measurements]
+
+        print(measurement_names)
+
+        global cfg
+        for func_name, func_body in cfg['query']['funcs'].items():
+            print(func_name, func_body)
+            fn = lua.eval(func_body)
+            print(fn('/Dustboy2/gearname/DUSTBOY-001/status'))
+
+        print(cfg['query']['mapping'])
+        # for measurement in measurements:
+        #     print(measurement['name'])
+        #     measurement = measurement['name']
+        #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("topic" = 'DUSTBOY/Model-N/WiFi/N-001/status') tz('Asia/Bangkok')'''
+        #     print(query)
+
+    # utils.get_measurment(cli)
+
+    # mapping = mm()
     # print(mapping)
-    # print(date_start, utils.tomorrow(str(date_start)))
-    x = pd.date_range(start=date_start, end=date_end, freq='D')
+    # print(start_date, utils.tomorrow(str(start_date)))
+    # x = pd.date_range(start=start_date, end=end_date, freq='D')
+    # measurement = "v1"
+
+# AND time >= '2021-01-14 18:00:00' tz('Asia/Bangkok')
+    return
 
     # print(date_start.timetuple().tm_yday)
-    cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
-        INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, database_name)
-    # print("alias infx='{}'".format(cmd))
-    for i in x:
-        # timetuple = pd.to_datetime(i).timetuple()
-        today = str(i.date())
-        tomorrow = utils.tomorrow(today)
-        outfile = "{}_{}.csv".format(nickname, today)
-        c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}'.format(
-            measurement_name, today, tomorrow, mapping[measurement_name + nickname], outfile)
-        print(c)
+    # cmd = 'time influx -host {} -port {} -precision \'u\' -username {} -password {} -database {}'.format(
+    #     INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, database_name)
+    # # print("alias infx='{}'".format(cmd))
+    # for i in x:
+    #     # timetuple = pd.to_datetime(i).timetuple()
+    #     today = str(i.date())
+    #     tomorrow = utils.tomorrow(today)
+    #     outfile = "{}_{}.csv".format(nickname, today)
+    #     c = cmd + ' -execute "SELECT * FROM \\"{}\\" WHERE time >= \'{}\' AND time < \'{}\' AND ("topic"=\'{}\') tz(\'Asia/Bangkok\')" -format csv > {}'.format(
+    #         measurement_name, today, tomorrow, mapping[measurement_name + nickname], outfile)
+    #     print(c)
 
 
 @cli.command()
