@@ -288,6 +288,18 @@ def _show_measurements(client, database_name):
 
     for measurement in measurement_names:
         print('>', measurement)
+    else:
+        if len(measurement_names) is 0:
+            print(f'No measurement found on "{database_name}"')
+
+
+def _show_measurements_with_detail(client, database_name):
+    measurement_names, influx_measurements = utils.get_measurements(
+        client, database_name)
+
+    for measurement in measurement_names:
+        show_tag_keys(client, database_name, measurement)
+        show_field_keys(client, database_name, measurement)
 
 
 def show_tag_keys(client, database_name, measurement):
@@ -308,8 +320,11 @@ def show_tag_keys(client, database_name, measurement):
     for idx, tag_key in enumerate(tag_keys, start=1):
         tag_values = utils.get_tag_values(
             client, database_name, measurement, tag_key)
+        print("============")
+        print("", ">>", tag_key, "")
+        print("============")
         for idx, tag_value in enumerate(tag_values, start=1):
-            print(idx, f"{tag_key} -> {tag_value}")
+            print(idx, f"-> {tag_value}")
         print("------------")
 
 
@@ -352,48 +367,41 @@ def dump(start_date, end_date):
         end_date = end_date.date()
 
     database_name = cfg['influx']['database_name']
-    if debug:
-        print("------------")
-        print(f'> datebaase: {database_name}')
-        print(f'> start_date: {start_date}')
-        print(f'> end_date: {end_date}')
-        print("------------")
+    print("------------")
+    print(f'> datebaase: {database_name}')
+    print(f'> start_date: {start_date}')
+    print(f'> end_date: {end_date}')
+    print("------------")
 
-        start_time = f'{start_date} 00:00:00'
-        end_time = f'{end_date} 23:59:59'
+    start_time = f'{start_date} 00:00:00'
+    end_time = f'{end_date} 23:59:59'
 
-        tag_key = cfg['query']['tag_key']
-        print('input tag_key = ', tag_key)
+    tag_key = cfg['query']['tag_key']
+    print('input tag_key = ', tag_key)
 
-        # show_field_keys(client, database_name)
-        _show_measurements(client, database_name)
-        measurement_names, influx_measurements = utils.get_measurements(
-            client, database_name)
+    _show_measurements(client, database_name)
+    _show_measurements_with_detail(client, database_name)
 
-        for measurement in measurement_names:
-            show_field_keys(client, database_name, measurement)
-            show_tag_keys(client, database_name, measurement)
+    # tag_values = show_tag_values_by_tag_key(
+    #     client, database_name, cfg['query']['tag_key'])
+    # for tag_value in tag_values:
+    #     # print(tag_value)
+    #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key['name']}" = '{tag_value}') tz('Asia/Bangkok')'''
 
-            # tag_values = show_tag_values_by_tag_key(
-            #     client, database_name, cfg['query']['tag_key'])
-            # for tag_value in tag_values:
-            #     # print(tag_value)
-            #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key['name']}" = '{tag_value}') tz('Asia/Bangkok')'''
+    # print(measurement)
 
-            # print(measurement)
+    # for func_name, func_body in cfg['query']['funcs'].items():
+    #     print(func_name, func_body)
+    #     fn = lua.eval(func_body)
+    #     print(fn('/Dustboy2/gearname/DUSTBOY-001/status'))
 
-        # for func_name, func_body in cfg['query']['funcs'].items():
-        #     print(func_name, func_body)
-        #     fn = lua.eval(func_body)
-        #     print(fn('/Dustboy2/gearname/DUSTBOY-001/status'))
+    # print(cfg['query']['mapping'])
 
-        # print(cfg['query']['mapping'])
-
-        # for measurement in measurements:
-        #     print(measurement['name'])
-        #     measurement = measurement['name']
-        #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("topic" = 'DUSTBOY/Model-N/WiFi/N-001/status') tz('Asia/Bangkok')'''
-        #     print(query)
+    # for measurement in measurements:
+    #     print(measurement['name'])
+    #     measurement = measurement['name']
+    #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("topic" = 'DUSTBOY/Model-N/WiFi/N-001/status') tz('Asia/Bangkok')'''
+    #     print(query)
 
     # utils.get_measurements(cli)
 
