@@ -63,7 +63,7 @@ def cli(shout, config):
         #     if debug:
         #         print(influx_conf)
 
-        print(cfg)
+        # print(cfg)
         # sys.exit()
         INFLUX_USER = influx_conf['username']
         INFLUX_PASSWORD = influx_conf['password']
@@ -79,7 +79,7 @@ def cli(shout, config):
                             table.insert(result, each)
                         end
                         return result
-                    end 
+                    end
                 ''')
 
         client = InfluxDBClient(
@@ -278,15 +278,80 @@ def start_dump(date_start, date_end, database_name, measurement_name, nickname, 
 # print("{}/{} has been SKIPPED.".format(skipped, total))
 # print(c)
 
-@cli.command()
-@click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
-@click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
+def _show_measurements(client, database_name):
+    print("------------")
+    print("measurements: ")
+    print("------------")
+
+    measurement_names, influx_measurements = utils.get_measurements(
+        client, database_name)
+
+    for measurement in measurement_names:
+        print('>', measurement)
+
+
+def show_tag_keys(client, database_name, measurement):
+    print("------------")
+    print(f"tag keys: from {measurement}")
+    print("------------")
+
+    tag_keys, influx_tag_keys = utils.get_tag_keys(
+        client, database_name, measurement)
+
+    # print("------------")
+    # print(influx_tag_keys)
+    # print("------------")
+    for idx, tag_key in enumerate(tag_keys, start=1):
+        print(idx, ">", tag_key)
+    print("------------")
+
+    for idx, tag_key in enumerate(tag_keys, start=1):
+        tag_values = utils.get_tag_values(
+            client, database_name, measurement, tag_key)
+        for idx, tag_value in enumerate(tag_values, start=1):
+            print(idx, f"{tag_key} -> {tag_value}")
+        print("------------")
+
+
+def show_field_keys(client, database_name, measurement):
+    print("------------")
+    print(f"field_keys: from {measurement}")
+    print("------------")
+
+    field_keys, influx_field_keys, = utils.get_field_keys(
+        client, database_name, measurement)
+
+    # print("------------")
+    # print(influx_field_keys)
+    # print("------------")
+
+    for idx, field_key in enumerate(field_keys, start=1):
+        print(idx, '>', field_key)
+    print("------------")
+
+
+def show_tag_values_by_tag_key(client, database_name, tag_key, func_string):
+    for tag_value in utils.get_tag_values(client, database_name, tag_key):
+        fn = lua.eval(func_string)
+        print(tag_value, fn(tag_value))
+
+    return utils.get_tag_values(client, database_name, tag_key)
+
+
+@ cli.command()
+@ click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
+@ click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
 # @click.option('--measurement-name', type=str, required=True)
 # @click.option('--nickname', type=str, required=True)
-@click.option('--database-name', type=str, required=True, )
-def dump(start_date, end_date, database_name):
+# @click.option('--database-name', type=str, required=True, )
+def dump(start_date, end_date):
     start_date = start_date.date()
-    end_date = end_date.date()
+    if end_date is None:
+        end_date = start_date
+    else:
+        end_date = end_date.date()
+
+    database_name = cfg['influx']['database_name']
     if debug:
         print("------------")
         print(f'> datebaase: {database_name}')
@@ -297,50 +362,25 @@ def dump(start_date, end_date, database_name):
         start_time = f'{start_date} 00:00:00'
         end_time = f'{end_date} 23:59:59'
 
-        print("------------")
-        print("tag keys: ")
-        print("------------")
+        tag_key = cfg['query']['tag_key']
+        print('input tag_key = ', tag_key)
 
-        tag_keys, influx_tag_keys = utils.get_tag_keys(client, database_name)
-        # print("------------")
-        # print(influx_tag_keys)
-        # print("------------")
-
-        for tag_key in tag_keys:
-            # print('>', tag_key)
-            tag_values = utils.get_tag_values(client, database_name, tag_key)
-            for tag_value in tag_values:
-                print(f"{tag_key} >> {tag_value}")
-            print("------------")
-
-        print("------------")
-        print("field_keys: ")
-        print("------------")
-
-        field_keys, influx_field_keys, = utils.get_field_keys(
+        # show_field_keys(client, database_name)
+        _show_measurements(client, database_name)
+        measurement_names, influx_measurements = utils.get_measurements(
             client, database_name)
-        # print("------------")
-        # print(influx_field_keys)
-        # print("------------")
 
-        for field_key in field_keys:
-            print('>', field_key)
-        print("------------")
+        for measurement in measurement_names:
+            show_field_keys(client, database_name, measurement)
+            show_tag_keys(client, database_name, measurement)
 
-        print("------------")
-        print("measurements: ")
-        print("------------")
+            # tag_values = show_tag_values_by_tag_key(
+            #     client, database_name, cfg['query']['tag_key'])
+            # for tag_value in tag_values:
+            #     # print(tag_value)
+            #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key['name']}" = '{tag_value}') tz('Asia/Bangkok')'''
 
-        measurements = utils.get_measurment(client, database_name)
-        for measurement in utils.get_measurment(client, database_name):
-            print('>', measurement)
-
-        measurement_names = [measurement['name']
-                             for measurement in measurements]
-
-        print(measurement_names)
-
-        global cfg
+            # print(measurement)
 
         # for func_name, func_body in cfg['query']['funcs'].items():
         #     print(func_name, func_body)
@@ -355,7 +395,7 @@ def dump(start_date, end_date, database_name):
         #     query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("topic" = 'DUSTBOY/Model-N/WiFi/N-001/status') tz('Asia/Bangkok')'''
         #     print(query)
 
-    # utils.get_measurment(cli)
+    # utils.get_measurements(cli)
 
     # mapping = mm()
     # print(mapping)
@@ -380,7 +420,7 @@ def dump(start_date, end_date, database_name):
     #     print(c)
 
 
-@cli.command()
+@ cli.command()
 def config():
     ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
     str = json.dumps(ret)
