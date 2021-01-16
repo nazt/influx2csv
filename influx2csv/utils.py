@@ -7,7 +7,7 @@ def get_measurements(client, db):
     measurments = list(res.get_points())
     # df = pd.DataFrame(measurments)
     # df['db'] = db
-    return ([item['name'] for item in measurments], measurments)
+    return [item['name'] for item in measurments]
 
 
 def get_field_keys(client, db, measurement):
@@ -16,7 +16,7 @@ def get_field_keys(client, db, measurement):
     field_keys = list(res.get_points())
     # df = pd.DataFrame(measurments)
     # df['db'] = db
-    return ([item['fieldKey'] for item in field_keys], field_keys)
+    return [item['fieldKey'] for item in field_keys]
 
 
 def get_tag_keys(client, db, measurement):
@@ -25,7 +25,7 @@ def get_tag_keys(client, db, measurement):
     tag_keys = list(res.get_points())
     # df = pd.DataFrame(measurments)
     # df['db'] = db
-    return ([item['tagKey'] for item in tag_keys], tag_keys)
+    return [item['tagKey'] for item in tag_keys]
 
 
 def get_tag_values(client, db, measurement, tag_key):

@@ -80,6 +80,18 @@ def cli(shout, config):
                         end
                         return result
                     end
+                    function string:split(delimiter)
+                        local result = { }
+                        local from  = 1
+                        local delim_from, delim_to = string.find( self, delimiter, from  )
+                        while delim_from do
+                            table.insert( result, string.sub( self, from , delim_from-1 ) )
+                            from  = delim_to + 1
+                            delim_from, delim_to = string.find( self, delimiter, from  )
+                        end
+                        table.insert( result, string.sub( self, from  ) )
+                        return result
+                    end
                 ''')
 
         client = InfluxDBClient(
@@ -283,7 +295,7 @@ def _show_measurements(client, database_name):
     print("measurements: ")
     print("------------")
 
-    measurement_names, influx_measurements = utils.get_measurements(
+    measurement_names = utils.get_measurements(
         client, database_name)
 
     for measurement in measurement_names:
@@ -294,21 +306,18 @@ def _show_measurements(client, database_name):
 
 
 def _show_measurements_with_detail(client, database_name):
-    measurement_names, influx_measurements = utils.get_measurements(
-        client, database_name)
 
-    for measurement in measurement_names:
-        show_tag_keys(client, database_name, measurement)
+    for measurement in utils.get_measurements(client, database_name):
+        show_tag_keys(client, database_name, measurement, with_value=True)
         show_field_keys(client, database_name, measurement)
 
 
-def show_tag_keys(client, database_name, measurement):
+def show_tag_keys(client, database_name, measurement, with_value=False):
     print("------------")
     print(f"tag keys: from {measurement}")
     print("------------")
 
-    tag_keys, influx_tag_keys = utils.get_tag_keys(
-        client, database_name, measurement)
+    tag_keys = utils.get_tag_keys(client, database_name, measurement)
 
     # print("------------")
     # print(influx_tag_keys)
@@ -317,15 +326,17 @@ def show_tag_keys(client, database_name, measurement):
         print(idx, ">", tag_key)
     print("------------")
 
-    for idx, tag_key in enumerate(tag_keys, start=1):
-        tag_values = utils.get_tag_values(
-            client, database_name, measurement, tag_key)
-        print("============")
-        print("", ">>", tag_key, "")
-        print("============")
-        for idx, tag_value in enumerate(tag_values, start=1):
-            print(idx, f"-> {tag_value}")
-        print("------------")
+    if with_value:
+        for idx, tag_key in enumerate(tag_keys, start=1):
+            tag_values = utils.get_tag_values(
+                client, database_name, measurement, tag_key)
+            print("============")
+            print("", ">>", tag_key, "")
+            print("============")
+            for idx, tag_value in enumerate(tag_values, start=1):
+                print(idx, f"-> {tag_value}")
+            print("------------")
+    return tag_keys
 
 
 def show_field_keys(client, database_name, measurement):
@@ -333,8 +344,7 @@ def show_field_keys(client, database_name, measurement):
     print(f"field_keys: from {measurement}")
     print("------------")
 
-    field_keys, influx_field_keys, = utils.get_field_keys(
-        client, database_name, measurement)
+    field_keys = utils.get_field_keys(client, database_name, measurement)
 
     # print("------------")
     # print(influx_field_keys)
@@ -366,6 +376,7 @@ def dump(start_date, end_date):
     else:
         end_date = end_date.date()
 
+    print(cfg)
     database_name = cfg['influx']['database_name']
     print("------------")
     print(f'> datebaase: {database_name}')
@@ -376,11 +387,45 @@ def dump(start_date, end_date):
     start_time = f'{start_date} 00:00:00'
     end_time = f'{end_date} 23:59:59'
 
-    tag_key = cfg['query']['tag_key']
-    print('input tag_key = ', tag_key)
+    # tag_key = cfg['query']['tag_key']
+    # print('input tag_key = ', tag_key)
 
     _show_measurements(client, database_name)
-    _show_measurements_with_detail(client, database_name)
+
+    print(cfg['query']['config'])
+    query_config = cfg['query']['config']
+    if query_config['tag_key'] is "*":
+        _show_measurements_with_detail(client, database_name)
+    else:
+        for measurement in utils.get_measurements(client, database_name):
+            tag_keys = show_tag_keys(client, database_name, measurement)
+            for tag_key in tag_keys:
+                # print(tag_key)
+                # print(query_config[tag_key])
+                if tag_key in query_config['logic']:
+                    print(f'yay found {tag_key}!')
+                    funcs = query_config['logic'][tag_key]['funcs']
+
+                    filter_func = lua.eval(funcs['filter'])
+                    transform_func = lua.eval(funcs['transform'])
+
+                    for tag_value in utils.get_tag_values(client, database_name, measurement, tag_key):
+                        if filter_func(tag_value):
+                            # print(tag_value)
+                            transformed = transform_func(tag_value)
+                            query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
+                            output_path = f'{database_name}/{measurement}/{tag_key}/{transformed}/{start_date}'
+                            print(output_path)
+                            # print(query, transformed)
+
+                    # print(funcs['filter_func'])
+                    # print(enumerate(funcs))
+                    # for name, j in funcs.items():
+                    #     print(i, j)
+            # for tag_key in utils.get_tag_keys
+            # show_field_keys(client, database_name, measurement)
+
+    sys.exit()
 
     # tag_values = show_tag_values_by_tag_key(
     #     client, database_name, cfg['query']['tag_key'])
