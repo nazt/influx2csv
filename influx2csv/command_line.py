@@ -366,17 +366,18 @@ def show_tag_values_by_tag_key(client, database_name, tag_key, func_string):
 @ cli.command()
 @ click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
 @ click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
+@ click.option('--out-dir', type=str, required=True)
 # @click.option('--measurement-name', type=str, required=True)
 # @click.option('--nickname', type=str, required=True)
 # @click.option('--database-name', type=str, required=True, )
-def dump(start_date, end_date):
+def dump(start_date, end_date, out_dir):
     start_date = start_date.date()
     if end_date is None:
         end_date = start_date
     else:
         end_date = end_date.date()
 
-    print(cfg)
+    print(cfg, out_dir)
     database_name = cfg['influx']['database_name']
     print("------------")
     print(f'> datebaase: {database_name}')
@@ -412,11 +413,23 @@ def dump(start_date, end_date):
                     for tag_value in utils.get_tag_values(client, database_name, measurement, tag_key):
                         if filter_func(tag_value):
                             # print(tag_value)
-                            transformed = transform_func(tag_value)
+                            nickname = transform_func(tag_value)
                             query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
-                            output_path = f'{database_name}/{measurement}/{tag_key}/{transformed}/{start_date}'
-                            print(output_path)
-                            # print(query, transformed)
+                            output_gen_path = f'{database_name}/{start_date}/{measurement}/{tag_key}'
+                            output_file = f'{nickname}.csv'
+                            target_file = os.path.join(
+                                out_dir, output_gen_path, output_file)
+
+                            os.makedirs(os.path.join(
+                                out_dir, output_gen_path), exist_ok=True)
+                            cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
+
+                            print(nickname)
+                            if os.path.exists(target_file) and os.stat(target_file).st_size > 0:
+                                print(target_file, 'exists!')
+                            else:
+                                os.system(cmd)
+                            # print(query, nickname)
 
                     # print(funcs['filter_func'])
                     # print(enumerate(funcs))
