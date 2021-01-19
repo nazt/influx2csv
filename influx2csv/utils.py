@@ -40,9 +40,8 @@ def get_tag_values(client, db, measurement, tag_key):
 
 def get_databases(client):
     res = client.query('show databases')
-
     databases = list(res.get_points())
-    return databases
+    return [item["name"] for item in databases[1:]]
 
 
 def tomorrow(war_start):
