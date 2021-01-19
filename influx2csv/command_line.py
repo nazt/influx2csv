@@ -1,3 +1,5 @@
+from time import sleep
+from tqdm import tqdm
 import click
 import glob
 import os
@@ -57,6 +59,7 @@ def cli(shout, config):
     else:
         config = toml.load(config)
         cfg = config
+        print(cfg)
         influx_conf = config['influx']
         # with open(config, 'r') as f:
         #     influx_conf = json.load(f)
@@ -136,6 +139,7 @@ def _show_measurements(client, database_name):
 
     measurement_names = utils.get_measurements(
         client, database_name)
+    # measurement_names = ["dustboy.netpie.2019"]
 
     for measurement in measurement_names:
         print('>', measurement)
@@ -145,7 +149,6 @@ def _show_measurements(client, database_name):
 
 
 def _show_measurements_with_detail(client, database_name):
-
     for measurement in utils.get_measurements(client, database_name):
         show_tag_keys(client, database_name, measurement, with_value=True)
         show_field_keys(client, database_name, measurement)
@@ -202,24 +205,25 @@ def show_tag_values_by_tag_key(client, database_name, tag_key, func_string):
     return utils.get_tag_values(client, database_name, tag_key)
 
 
-@ cli.command()
-@ click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
-@ click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
-@ click.option('--out-dir', type=str, required=True)
-def dump(start_date, end_date, out_dir):
+def syscall():
+    pass
+
+
+@cli.command()
+@click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
+@click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
+@click.option('--out-dir', type=str, required=True)
+@click.option('--dry-run', type=bool, required=False, default=False)
+@click.option('--database', type=str, required=True)
+def dump(start_date, end_date, out_dir, database, dry_run=False):
     start_date = start_date.date()
     if end_date is None:
         end_date = start_date
     else:
         end_date = end_date.date()
-
-    database_name = cfg['influx']['database_name']
-    print("------------")
-    print(f'> datebaase: {database_name}')
-    print(f'> start_date: {start_date}')
-    print(f'> end_date: {end_date}')
-    print("------------")
+    # database_name = cfg['influx']['database_name']
 #     x = pd.date_range(start=date_start, end=tomorrow, freq='D')
+    database_name = cfg['influx']['database_name']
 
     start_time = f'{start_date} 00:00:00'
     end_time = f'{end_date} 23:59:59'
@@ -228,29 +232,25 @@ def dump(start_date, end_date, out_dir):
     # print('input tag_key = ', tag_key)
 
     _show_measurements(client, database_name)
-
-    print(cfg['query']['config'])
+    # print(cfg['query']['config'])
     query_config = cfg['query']['config']
+
     if query_config['tag_key'] is "*":
         _show_measurements_with_detail(client, database_name)
     else:
         for measurement in utils.get_measurements(client, database_name):
             tag_keys = show_tag_keys(client, database_name, measurement)
             for tag_key in tag_keys:
-                # print(tag_key)
-                # print(query_config[tag_key])
                 if tag_key in query_config['logic']:
                     print(f'yay found {tag_key}!')
                     funcs = query_config['logic'][tag_key]['funcs']
-
                     filter_func = lua.eval(funcs['filter'])
                     transform_func = lua.eval(funcs['transform'])
-
                     for tag_value in utils.get_tag_values(client, database_name, measurement, tag_key):
                         if filter_func(tag_value):
                             # print(tag_value)
                             nickname = transform_func(tag_value)
-                            query = f'''SELECT * FROM "{measurement}" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
+                            query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
                             output_gen_path = f'{database_name}/{start_date}/{measurement}/{tag_key}'
                             output_file = f'{nickname}.csv'
                             target_file = os.path.join(
@@ -260,23 +260,38 @@ def dump(start_date, end_date, out_dir):
                                 out_dir, output_gen_path), exist_ok=True)
                             cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
 
-                            print(nickname)
-                            if os.path.exists(target_file) and os.stat(target_file).st_size > 0:
-                                print(target_file, 'exists!')
-                            else:
-                                os.system(cmd)
-                            # print(query, nickname)
+                            #! TODO://
+                            # if os.path.exists(target_file) and os.stat(target_file).st_size > 0:
+                            #     print(os.path.basename(target_file), 'exists!')
+                            # else:
+                            #     if not dry_run:
+                            #         os.system(cmd)
+                            #     else:
+                            #         print(nickname, "dry run!")
 
-                    # print(funcs['filter_func'])
-                    # print(enumerate(funcs))
-                    # for name, j in funcs.items():
-                    #     print(i, j)
-            # for tag_key in utils.get_tag_keys
-            # show_field_keys(client, database_name, measurement)
 
-    sys.exit()
+@cli.command()
+@click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
+@click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
+@click.option('--out-dir', type=str, required=True)
+@click.option('--dry-run', type=bool, required=False, default=False)
+@click.pass_context
+def dump_range(ctx, start_date, end_date, out_dir, dry_run):
+    database_name = cfg['influx']['database_name']
+    print("------------")
+    print("Dry run:", dry_run)
+    print(f'> datebase: {database_name}')
+    print(f'> start_date: {start_date}')
+    print(f'> end_date: {end_date}')
+    print("------------")
 
-    return
+    x = pd.date_range(start=start_date, end=end_date, freq='D')
+
+    pbar = tqdm(x, unit='day')
+    for warp_date in pbar:
+        pbar.set_description("Processing %s" % warp_date.strftime("%Y-%m-%d"))
+        result = ctx.invoke(dump, start_date=warp_date, end_date=warp_date,
+                            out_dir=out_dir, dry_run=dry_run, database=database_name)
 
 
 @ cli.command()
