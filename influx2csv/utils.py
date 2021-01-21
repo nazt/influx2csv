@@ -41,7 +41,12 @@ def get_tag_values(client, db, measurement, tag_key):
 def get_databases(client):
     res = client.query('show databases')
     databases = list(res.get_points())
-    return [item["name"] for item in databases[1:]]
+    print(">>>>>>>", databases)
+
+    databases = [item["name"] for item in databases[1:]]
+    if "_internal" in databases:
+        databases.remove("_internal")
+    return databases
 
 
 def tomorrow(war_start):
@@ -52,5 +57,19 @@ def tomorrow(war_start):
     return ret
 
 
+def yesterday(war_start):
+    today = datetime.datetime.strptime(war_start, '%Y-%m-%d')
+    x = datetime.timedelta(days=1)
+    ret = today - x
+    ret = ret.strftime("%Y-%m-%d")
+    return ret
+
+
 def exclude(a, b):
     return [x for x in a if x not in b]
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
