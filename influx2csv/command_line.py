@@ -329,7 +329,9 @@ def dump_range(ctx, start_date, end_date, out_dir, dry_run):
                                 start=start_date, end=end_date, freq='D')
 
                             # TODO chunks
-                            chunks = list(utils.chunks(list(date_range), 200))
+                            chunk_size_in_days = 1
+                            chunks = list(utils.chunks(
+                                list(date_range), chunk_size_in_days))
                             # print('len', len(chunks))
                             # print(chunks[0][0], chunks[0][-1])
                             # print("---------")
