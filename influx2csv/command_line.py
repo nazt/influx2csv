@@ -191,6 +191,8 @@ def dump_range(ctx, start_date, end_date, out_dir, chunk_size, dry_run):
                             chunks = list(utils.chunks(
                                 list(date_range), chunk_size_in_days))
 
+                            tz = "tz('Asia/Bangkok')"
+                            precision = 'u'
                             for chunk in chunks:
                                 print("---------")
                                 ss_start_date = chunk[0].strftime("%Y-%m-%d")
@@ -201,11 +203,11 @@ def dump_range(ctx, start_date, end_date, out_dir, chunk_size, dry_run):
 
                                 print(">", ss_start_date, ss_end_date)
 
-                                query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
+                                query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') {tz}'''
 
                                 target_file = utils.generate_output_path(out_dir,
                                                                          database_name, ss_start_date, measurement, tag_key, nickname)
-                                cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -format csv -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
+                                cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'{precision}\' -format csv -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
 
                                 if not dry_run:
                                     os.system(cmd)
