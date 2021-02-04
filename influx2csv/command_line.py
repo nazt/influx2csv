@@ -100,24 +100,20 @@ def cli(shout, config):
         client = InfluxDBClient(
             host=INFLUX_HOST, username=INFLUX_USER, password=INFLUX_PASSWORD, port=INFLUX_PORT)
 
-    # p = "{}/config.json".format(out_dir)
-    # if not os.path.exists(p):
-    # 	ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
-    # 	with open(p, 'w') as f:
-    # 		json.dump(ret, p)
-    #
-    #
-
     if __name__ == '__main__':
         cli()
 
 
+def show_tag_values_by_tag_key(client, database_name, tag_key, func_string):
+    for tag_value in utils.get_tag_values(client, database_name, tag_key):
+        fn = lua.eval(func_string)
+        print(tag_value, fn(tag_value))
+
+    return utils.get_tag_values(client, database_name, tag_key)
+
+
 def filename(path):
     return os.path.basename(path).split('.csv')[0]
-
-# @click.option('--output-dir', required=True, type=str, help='Output directory')
-# @click.option('--csv-file', required=True, type=str, help='CSVInput directory')
-# @click.version_option()
 
 
 @cli.command("show-databases")
@@ -129,90 +125,8 @@ def show_databases():
     click.echo(databases)
 
 
-@cli.command()
-def show_measurements():
-    mapping = mm()
-
-
-def _show_measurements(client, database_name):
-    measurement_names = utils.get_measurements(client, database_name)
-    # measurement_names = ["dustboy.netpie.2019"]
-    for measurement in measurement_names:
-        print('  ', measurement)
-    if len(measurement_names) == 0:
-        print('   ', f'No measurement')
-
-
-def _show_measurements_with_detail(client, database_name):
-    for measurement in utils.get_measurements(client, database_name):
-        show_tag_keys(client, database_name, measurement, with_value=True)
-        show_field_keys(client, database_name, measurement)
-
-
-def show_tag_keys(client, database_name, measurement, with_value=False):
-    print("------------")
-    print(f"tag keys: from {measurement}")
-    print("------------")
-
-    tag_keys = utils.get_tag_keys(client, database_name, measurement)
-
-    # print("------------")
-    # print(influx_tag_keys)
-    # print("------------")
-    for idx, tag_key in enumerate(tag_keys, start=1):
-        print(idx, ">", tag_key)
-    print("------------")
-
-    if with_value:
-        for idx, tag_key in enumerate(tag_keys, start=1):
-            tag_values = utils.get_tag_values(
-                client, database_name, measurement, tag_key)
-            print("============")
-            print("", ">>", tag_key, "")
-            print("============")
-            for idx, tag_value in enumerate(tag_values, start=1):
-                print(idx, f"-> {tag_value}")
-            print("------------")
-    return tag_keys
-
-
-def show_field_keys(client, database_name, measurement):
-    print("------------")
-    print(f"field_keys: from {measurement}")
-    print("------------")
-
-    field_keys = utils.get_field_keys(client, database_name, measurement)
-
-    # print("------------")
-    # print(influx_field_keys)
-    # print("------------")
-
-    for idx, field_key in enumerate(field_keys, start=1):
-        print(idx, '>', field_key)
-    print("------------")
-
-
-def show_tag_values_by_tag_key(client, database_name, tag_key, func_string):
-    for tag_value in utils.get_tag_values(client, database_name, tag_key):
-        fn = lua.eval(func_string)
-        print(tag_value, fn(tag_value))
-
-    return utils.get_tag_values(client, database_name, tag_key)
-
-
 def syscall():
     pass
-
-
-def generate_output_path(out_dir, database_name, ss_start_date, measurement, tag_key, nickname):
-    output_gen_path = f'{database_name}/{ss_start_date}/{measurement}/{tag_key}'
-    output_file = f'{nickname}.csv'
-    target_file = os.path.join(
-        out_dir, output_gen_path, output_file)
-
-    os.makedirs(os.path.join(
-        out_dir, output_gen_path), exist_ok=True)
-    return target_file
 
 
 @cli.command()
@@ -289,8 +203,8 @@ def dump_range(ctx, start_date, end_date, out_dir, chunk_size, dry_run):
 
                                 query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
 
-                                target_file = generate_output_path(out_dir,
-                                                                   database_name, ss_start_date, measurement, tag_key, nickname)
+                                target_file = utils.generate_output_path(out_dir,
+                                                                         database_name, ss_start_date, measurement, tag_key, nickname)
                                 cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -format csv -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
 
                                 if not dry_run:
