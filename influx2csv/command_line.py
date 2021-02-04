@@ -204,66 +204,6 @@ def syscall():
     pass
 
 
-# @cli.command()
-# @click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
-# @click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
-# @click.option('--out-dir', type=str, required=True)
-# @click.option('--dry-run', type=bool, required=False, default=False)
-# @click.option('--database', type=str, required=True)
-# def dump(start_date, end_date, out_dir, database, dry_run=False):
-#     start_date = start_date.date()
-#     if end_date is None:
-#         end_date = start_date
-#     else:
-#         end_date = end_date.date()
-#     # database_name = cfg['influx']['database_name']
-# #     x = pd.date_range(start=date_start, end=tomorrow, freq='D')
-#     database_name = cfg['influx']['database_name']
-
-#     start_time = f'{start_date} 00:00:00'
-#     end_time = f'{end_date} 23:59:59'
-
-#     # tag_key = cfg['query']['tag_key']
-#     # print('input tag_key = ', tag_key)
-
-#     _show_measurements(client, database_name)
-#     # print(cfg['query']['config'])
-#     query_config = cfg['query']['config']
-
-#     if query_config['tag_key'] is "*":
-#         _show_measurements_with_detail(client, database_name)
-#     else:
-#         for measurement in utils.get_measurements(client, database_name):
-#             tag_keys = show_tag_keys(client, database_name, measurement)
-#             for tag_key in tag_keys:
-#                 if tag_key in query_config['logic']:
-#                     print(f'yay found {tag_key}!')
-#                     funcs = query_config['logic'][tag_key]['funcs']
-#                     filter_func = lua.eval(funcs['filter'])
-#                     transform_func = lua.eval(funcs['transform'])
-#                     for tag_value in utils.get_tag_values(client, database_name, measurement, tag_key):
-#                         if filter_func(tag_value):
-#                             # print(tag_value)
-#                             nickname = transform_func(tag_value)
-#                             query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
-#                             output_gen_path = f'{database_name}/{start_date}/{measurement}/{tag_key}'
-#                             output_file = f'{nickname}.csv'
-#                             target_file = os.path.join(
-#                                 out_dir, output_gen_path, output_file)
-
-#                             os.makedirs(os.path.join(
-#                                 out_dir, output_gen_path), exist_ok=True)
-#                             cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
-
-#                             #! TODO://
-#                             # if os.path.exists(target_file) and os.stat(target_file).st_size > 0:
-#                             #     print(os.path.basename(target_file), 'exists!')
-#                             # else:
-#                             #     if not dry_run:
-#                             #         os.system(cmd)
-#                             #     else:
-#                             #         print(nickname, "dry run!")
-
 def generate_output_path(out_dir, database_name, ss_start_date, measurement, tag_key, nickname):
     output_gen_path = f'{database_name}/{ss_start_date}/{measurement}/{tag_key}'
     output_file = f'{nickname}.csv'
