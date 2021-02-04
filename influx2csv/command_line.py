@@ -120,7 +120,7 @@ def filename(path):
 # @click.version_option()
 
 
-@ cli.command("show-databases")
+@cli.command("show-databases")
 def show_databases():
     # databases = [db['name'] for db in client.get_list_database()]
     # databases.remove("_internal")
@@ -129,7 +129,7 @@ def show_databases():
     click.echo(databases)
 
 
-@ cli.command()
+@cli.command()
 def show_measurements():
     mapping = mm()
 
@@ -139,7 +139,7 @@ def _show_measurements(client, database_name):
     # measurement_names = ["dustboy.netpie.2019"]
     for measurement in measurement_names:
         print('  ', measurement)
-    if len(measurement_names) is 0:
+    if len(measurement_names) == 0:
         print('   ', f'No measurement')
 
 
@@ -264,14 +264,25 @@ def syscall():
 #                             #     else:
 #                             #         print(nickname, "dry run!")
 
+def generate_output_path(out_dir, database_name, ss_start_date, measurement, tag_key, nickname):
+    output_gen_path = f'{database_name}/{ss_start_date}/{measurement}/{tag_key}'
+    output_file = f'{nickname}.csv'
+    target_file = os.path.join(
+        out_dir, output_gen_path, output_file)
+
+    os.makedirs(os.path.join(
+        out_dir, output_gen_path), exist_ok=True)
+    return target_file
+
 
 @cli.command()
 @click.option('--start-date', type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()), required=True)
 @click.option('--end-date', type=click.DateTime(formats=["%Y-%m-%d"]), required=False)
 @click.option('--out-dir', type=str, required=True)
+@click.option('--chunk-size', type=int, required=True)
 @click.option('--dry-run', type=bool, required=False, default=False)
 @click.pass_context
-def dump_range(ctx, start_date, end_date, out_dir, dry_run):
+def dump_range(ctx, start_date, end_date, out_dir, chunk_size, dry_run):
     database_name = cfg['influx']['database_name']
     #! TODO: Remove this
     # database_name = "*"
@@ -288,60 +299,49 @@ def dump_range(ctx, start_date, end_date, out_dir, dry_run):
     print(f'> end_date: {end_date}')
     print("------------")
 
+    skip_date = True
     print("=== DATABASES ===")
     for idx, database_name in enumerate(databases, start=1):
+        print("--------------")
         print("📍", f'{idx}/{len(databases)}', database_name)
 
-        if database_name == "test1":
-            continue
-        if database_name == "data-mart":
+        if database_name in ["test1", "data-mart"]:
             continue
 
+        # Iterate over measurement
         for measurement in utils.get_measurements(client, database_name):
             print("->", measurement)
             tag_keys = utils.get_tag_keys(
                 client, database_name, measurement)
+            # Iterate over tag_key to list all tag keys and tag values
             for tag_key in tag_keys:
-                print(">", tag_key)
+                print(" >", tag_key)
                 tag_values = utils.get_tag_values(
                     client, database_name, measurement, tag_key)
-
-                query_config = cfg['query']['config']
-                if tag_key in query_config['logic']:
+                user_config = cfg['query']['config']
+                if tag_key in user_config['logic'].keys():
                     print(f'yay found {tag_key}!')
-                    funcs = query_config['logic'][tag_key]['funcs']
+                    print("--------------")
+                    funcs = user_config['logic'][tag_key]['funcs']
                     filter_func = lua.eval(funcs['filter'])
                     # transform_func = lua.eval(funcs['transform'])
-                    for idx, tag_value in enumerate(utils.get_tag_values(client, database_name, measurement, tag_key), start=1):
+                    for idx, tag_value in enumerate(tag_values, start=1):
                         if filter_func(tag_value):
-                            # nickname = transform_func(tag_value)
                             nickname = tag_value.split("/")[-2:-1][0]
-                            # if "Model-PRO" in tag_value:
-                            #     nickname = tag_value.split("/")[-2:-1]
-                            # print("============")
-                            # print("", ">>", tag_key, "")
-                            # print("============")
-                            # for idx, tag_value in enumerate(tag_values, start=1):
-                            print(idx, f"-> {tag_value}", nickname)
-                            # print("------------")
-                            # print
+                            print(idx, f"[{tag_key}] -> {tag_value}", nickname)
                             date_range = pd.date_range(
                                 start=start_date, end=end_date, freq='D')
 
                             # TODO chunks
-                            chunk_size_in_days = 1
+                            chunk_size_in_days = chunk_size
                             chunks = list(utils.chunks(
                                 list(date_range), chunk_size_in_days))
-                            # print('len', len(chunks))
-                            # print(chunks[0][0], chunks[0][-1])
-                            # print("---------")
-                            # print(chunks[1][0], chunks[1][-1])
+
                             for chunk in chunks:
                                 print("---------")
                                 ss_start_date = chunk[0].strftime("%Y-%m-%d")
                                 ss_end_date = chunk[-1].strftime("%Y-%m-%d")
                                 # print(">", start_date, end_date)
-
                                 start_time = f'{ss_start_date} 00:00:00'
                                 end_time = f'{ss_end_date} 23:59:59'
 
@@ -349,33 +349,19 @@ def dump_range(ctx, start_date, end_date, out_dir, dry_run):
 
                                 query = f'''SELECT * FROM \\\"{measurement}\\\" WHERE (time >= '{start_time}' AND time <= '{end_time}') AND ("{tag_key}" = '{tag_value}') tz('Asia/Bangkok')'''
 
-                                output_gen_path = f'{database_name}/{ss_start_date}/{measurement}/{tag_key}'
-                                output_file = f'{nickname}.csv'
-                                target_file = os.path.join(
-                                    out_dir, output_gen_path, output_file)
-
-                                os.makedirs(os.path.join(
-                                    out_dir, output_gen_path), exist_ok=True)
+                                target_file = generate_output_path(out_dir,
+                                                                   database_name, ss_start_date, measurement, tag_key, nickname)
                                 cmd = f'''influx -host {INFLUX_HOST} -port {INFLUX_PORT} -precision \'u\' -format csv -username {INFLUX_USER} -password {INFLUX_PASSWORD} -database {database_name} -execute "{query}" > {target_file} '''
 
                                 if not dry_run:
                                     os.system(cmd)
                                 # else:
                                 #     print(nickname, "dry run!")
-                        print("-------")
-
-                    # for date in date_range:
-                    #     print(date.strftime("%Y-%m-%d"))
-                    # print(">", tag_key)
-
-                    # pbar = tqdm(x, unit='day')
-                    # for warp_date in pbar:
-                    #     pbar.set_description("Processing %s" % warp_date.strftime("%Y-%m-%d"))
-                    #     result = ctx.invoke(dump, start_date=warp_date, end_date=warp_date,
-                    #                         out_dir=out_dir, dry_run=dry_run, database=database_name)
+                        else:
+                            print(f'🧹 {tag_value}')
 
 
-@ cli.command()
+@cli.command()
 def config():
     ret = {'username': '', 'password': '', 'host': '', 'port': 8086}
     str = json.dumps(ret)
